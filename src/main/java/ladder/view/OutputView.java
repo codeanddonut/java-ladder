@@ -1,9 +1,12 @@
 package ladder.view;
 
-
-import ladder.model.*;
+import ladder.model.game.Game;
+import ladder.model.ladder.Ladder;
+import ladder.model.result.Query;
+import ladder.model.result.Result;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class OutputView {
     private static final int MIN_SPACE = 2;
@@ -12,14 +15,15 @@ public class OutputView {
     private static final String VERT_LINE = "|";
 
     public static void printGame(Game game) {
-        final Players players = game.getPlayers();
-        final Rewards rewards = game.getRewards();
-        final int maxLength = Math.max(players.getLongestPlayerNameLength(), rewards.getLongestRewardNameLength());
-        final int offset = (maxLength - Math.max(players.get(0).length(), rewards.get(0).length())) / 2;
+        final int maxLength = Math.max(game.players().longestNameLength(), game.rewards().longestNameLength());
+        final int offset = maxLength - Math.max(
+                        game.players().firstPlayerNameLength(),
+                        game.rewards().firstRewardNameLength()
+        ) / 2;
         System.out.println("\n사다리 결과\n");
-        printWords(players.getListOfPlayers(), maxLength, offset);
-        printLadder(game.getLadder(), maxLength, offset);
-        printWords(rewards.getListOfRewards(), maxLength, offset);
+        printWords(game.players().everyPlayerNames(), maxLength, offset);
+        printLadder(game.ladder(), maxLength, offset);
+        printWords(game.rewards().everyRewardNames(), maxLength, offset);
     }
 
     private static void printWords(List<String> words, int maxLength, int offset) {
@@ -27,7 +31,9 @@ public class OutputView {
         words.forEach(word -> {
             final int leftPadding = (maxLength - word.length()) / 2 + MIN_SPACE;
             final int rightPadding = maxLength + 2 * MIN_SPACE - word.length() - leftPadding;
-            result.append(repeatChar(BLANK, leftPadding) + word + repeatChar(BLANK, rightPadding));
+            result.append(repeatChar(BLANK, leftPadding));
+            result.append(word);
+            result.append(repeatChar(BLANK, rightPadding));
         });
         System.out.println(result.toString().substring(offset));
     }
@@ -35,37 +41,34 @@ public class OutputView {
     private static void printLadder(Ladder ladder, int maxLength, int offset) {
         final int initialSpace = (maxLength - VERT_LINE.length()) / 2 + MIN_SPACE;
         final int space = maxLength - VERT_LINE.length() + 2 * MIN_SPACE;
-        ladder.getLevels().forEach(level -> {
+        ladder.levels().forEach(level -> {
             final String leftPadding = repeatChar(BLANK, initialSpace);
-            final String result = leftPadding + VERT_LINE + printLevel(level.getLines(), ladder.getWidth(), space);
+            final String result = leftPadding + VERT_LINE + printLevel(level.lines(), ladder.width(), space);
             System.out.println(result.substring(offset));
         });
     }
 
     private static String printLevel(List<Integer> lines, int width, int space) {
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < width - 1; i++) {
-            result.append(drawHorizontalLine(lines.contains(i), space) + VERT_LINE);
-        }
+        final StringBuilder result = new StringBuilder();
+        IntStream.range(0, width - 1).forEach(i -> {
+            result.append(drawHorizontalLine(lines.contains(i), space));
+            result.append(VERT_LINE);
+        });
         return result.toString();
     }
 
-    private static String drawHorizontalLine(boolean exists, int width) {
-        if (exists) {
-            return repeatChar(HORIZ_LINE, width);
-        }
-        return repeatChar(BLANK, width);
+    private static String drawHorizontalLine(boolean ifExists, int width) {
+        return ifExists ? repeatChar(HORIZ_LINE, width) : repeatChar(BLANK, width);
     }
 
     private static String repeatChar(String text, int n) {
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < n; i++) {
-            result.append(text);
-        }
+        final StringBuilder result = new StringBuilder();
+        IntStream.range(0, n).forEach(i -> result.append(text));
         return result.toString();
     }
 
-    public static boolean printResult(Result result) {
+    public static boolean printResult(Game game, Query query) {
+        final Result result = game.result(query);
         System.out.println("\n실행 결과");
         if (!result.hasNext()) {
             System.out.println("존재하지 않는 참여자입니다. 프로그램을 종료합니다.");
