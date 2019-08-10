@@ -8,6 +8,8 @@ import java.util.stream.Stream;
 
 public class Parser {
     private static final String DEFAULT_DELIMITER = ",|:";
+    private static final String CUSTOM_DELIMITER_BEGIN = "//";
+    private static final String CUSTOM_DELIMITER_END = "\n";
 
     public static List<Integer> run(String input) {
         return Optional.ofNullable(input).map(String::trim)
@@ -18,9 +20,12 @@ public class Parser {
 
     private static Stream<String> tokenize(String input) {
         String delimiter = DEFAULT_DELIMITER;
-        if (input.startsWith("//")) {
-            delimiter += "|" + input.substring(2, input.indexOf("\n"));
-            input = input.substring(input.indexOf("\n") + 1);
+        if (input.startsWith(CUSTOM_DELIMITER_BEGIN)) {
+            delimiter += "|\\" + input.substring(
+                    CUSTOM_DELIMITER_BEGIN.length(),
+                    input.indexOf(CUSTOM_DELIMITER_END)
+            );
+            input = input.substring(input.indexOf(CUSTOM_DELIMITER_END) + 1);
         }
         return Stream.of(input.split(delimiter));
     }
